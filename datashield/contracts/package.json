@@ -1,0 +1,12 @@
+{
+  "name": "datashield-contracts",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test -vvv",
+    "deploy:og": "forge script script/Deploy.s.sol:Deploy --rpc-url $OG_CHAIN_RPC --broadcast --private-key $PRIVATE_KEY",
+    "seed:og": "forge script script/Seed.s.sol:Seed --rpc-url $OG_CHAIN_RPC --broadcast --private-key $PRIVATE_KEY"
+  }
+}
+

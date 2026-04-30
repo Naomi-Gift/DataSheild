@@ -1,0 +1,29 @@
+{
+  "name": "datashield-backend",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "node -r ts-node/register src/api.ts",
+    "start": "node -r ts-node/register src/api.ts"
+  },
+  "dependencies": {
+    "@0glabs/0g-ts-sdk": "latest",
+    "@0glabs/0g-serving-broker": "latest",
+    "ethers": "^6.0.0",
+    "express": "^4.18.0",
+    "cors": "^2.8.5",
+    "multer": "1.4.5-lts.1",
+    "bull": "^4.12.0",
+    "dotenv": "^16.0.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "latest",
+    "@types/cors": "latest",
+    "@types/multer": "latest",
+    "@types/bull": "latest",
+    "typescript": "^5.0.0",
+    "ts-node": "latest"
+  }
+}
+

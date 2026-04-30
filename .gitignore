@@ -1,0 +1,22 @@
+# Secrets — never commit
+datashield/contracts/.env
+datashield/backend/.env
+datashield/frontend/.env.local
+
+# Node
+node_modules/
+.next/
+dist/
+build/
+
+# Foundry
+datashield/contracts/out/
+datashield/contracts/cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

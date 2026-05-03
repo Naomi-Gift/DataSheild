@@ -32,10 +32,9 @@ contract Deploy is Script {
 
         vm.serializeAddress("deployments", "DataSealNFT", nft);
         vm.serializeAddress("deployments", "DataMarket", market);
-        vm.serializeUint("deployments", "chainId", 16600);
+        vm.serializeUint("deployments", "chainId", block.chainid);
         vm.serializeString("deployments", "network", "og_testnet");
         string memory json = vm.serializeUint("deployments", "updatedAt", block.timestamp);
         vm.writeJson(json, path);
     }
 }
-

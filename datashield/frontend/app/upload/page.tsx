@@ -11,15 +11,18 @@ import { GradientText } from "@/components/ui/GradientText";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { cn, scoreTier } from "@/lib/utils";
 import type { ScanResult } from "@/lib/api";
-import { DATASEAL_ABI, DATASEAL_ADDRESS } from "@/lib/contracts";
+import { DATASEAL_ABI, DATASEAL_ADDRESS, DATAMARKET_ABI, DATAMARKET_ADDRESS, ERC20_ABI, OG_TOKEN_ADDRESS } from "@/lib/contracts";
+import { parseEther } from "viem";
+import { usePublicClient } from "wagmi";
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 const STEPS = [
   { n: 1, label: "Upload" },
   { n: 2, label: "Scan" },
   { n: 3, label: "Review" },
   { n: 4, label: "Certify" },
+  { n: 5, label: "List" },
 ];
 
 function StepIndicator({ current }: { current: Step }) {
@@ -112,9 +115,14 @@ export default function UploadPage() {
   const [result, setResult] = React.useState<ScanResult | null>(null);
   const [fileName, setFileName] = React.useState<string | undefined>();
   const [txHash, setTxHash] = React.useState<string | undefined>();
+  const [tokenId, setTokenId] = React.useState<number | undefined>();
   const [minted, setMinted] = React.useState(false);
+  const [listPrice, setListPrice] = React.useState("10");
+  const [listing, setListing] = React.useState(false);
+  const [listed, setListed] = React.useState(false);
 
   const { writeContractAsync, isPending } = useWriteContract();
+  const publicClient = usePublicClient();
 
   function onUpload(id: string) { setJobId(id); setStep(2); }
 
@@ -126,9 +134,9 @@ export default function UploadPage() {
       toast.error("Missing scan result fields for minting");
       return;
     }
-    const listing = result.listing || {};
-    const datasetName = String(listing.name || "Unnamed Dataset");
-    const modelType   = String(listing.modelType || "other");
+    const listingData = result.listing || {};
+    const datasetName = String(listingData.name || "Unnamed Dataset");
+    const modelType   = String(listingData.modelType || "other");
     const sampleCount = BigInt(result.sampleCount || 0);
     const score       = Number(result.score || 0);
 
@@ -150,6 +158,24 @@ export default function UploadPage() {
         value: 100n * 10n ** 18n,
       });
       setTxHash(hash);
+
+      // Extract tokenId from receipt logs
+      if (publicClient && hash) {
+        try {
+          const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+          // The Sealed event: Sealed(uint256 indexed tokenId, ...)
+          // topic[1] is the tokenId
+          const sealedLog = receipt.logs.find(
+            (l) => l.address.toLowerCase() === DATASEAL_ADDRESS.toLowerCase() && l.topics.length >= 2
+          );
+          if (sealedLog?.topics[1]) {
+            setTokenId(Number(BigInt(sealedLog.topics[1])));
+          }
+        } catch {
+          // tokenId extraction failed, continue without it
+        }
+      }
+
       setMinted(true);
     } catch (e: any) {
       toast.error(e?.shortMessage || e?.message || "Mint failed");
@@ -157,14 +183,44 @@ export default function UploadPage() {
     }
   }
 
+  async function listOnMarket() {
+    if (!tokenId) { toast.error("Token ID not found"); return; }
+    const priceWei = parseEther(listPrice || "0");
+    if (priceWei <= 0n) { toast.error("Enter a valid price"); return; }
+    try {
+      setListing(true);
+      // Approve NFT transfer to DataMarket
+      await writeContractAsync({
+        address: DATASEAL_ADDRESS,
+        abi: DATASEAL_ABI,
+        functionName: "approve",
+        args: [DATAMARKET_ADDRESS, BigInt(tokenId)],
+      });
+      // List on market
+      await writeContractAsync({
+        address: DATAMARKET_ADDRESS,
+        abi: DATAMARKET_ABI,
+        functionName: "list",
+        args: [BigInt(tokenId), priceWei],
+      });
+      setListed(true);
+      toast.success(`DataSeal #${tokenId} listed for ${listPrice} $0G`);
+    } catch (e: any) {
+      toast.error(e?.shortMessage || e?.message || "Listing failed");
+    } finally {
+      setListing(false);
+    }
+  }
+
   function reset() {
     setStep(1); setJobId(null); setResult(null); setFileName(undefined);
-    setTxHash(undefined); setMinted(false);
+    setTxHash(undefined); setTokenId(undefined); setMinted(false);
+    setListPrice("10"); setListing(false); setListed(false);
   }
 
   const score    = result?.score ?? 0;
   const canMint  = result?.status === "complete" && score >= 70;
-  const listing  = result?.listing || {};
+  const listingData  = result?.listing || {};
 
   return (
     <main className="min-h-screen bg-bg-base">
@@ -221,12 +277,12 @@ export default function UploadPage() {
                     </div>
 
                     {/* AI listing preview */}
-                    {listing.name && (
+                    {listingData.name && (
                       <div className="bg-bg-elevated rounded-xl p-4 mb-5 border border-white/8">
                         <div className="text-[11px] text-text-muted mb-2 uppercase tracking-wider">AI-Generated Listing</div>
-                        <div className="text-[14px] font-semibold text-text-primary">{listing.name}</div>
-                        {listing.description && <div className="text-[12px] text-text-secondary mt-1">{listing.description}</div>}
-                        {listing.modelType && <div className="text-[11px] text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded mt-2 inline-block">{listing.modelType}</div>}
+                        <div className="text-[14px] font-semibold text-text-primary">{listingData.name}</div>
+                        {listingData.description && <div className="text-[12px] text-text-secondary mt-1">{listingData.description}</div>}
+                        {listingData.modelType && <div className="text-[11px] text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded mt-2 inline-block">{listingData.modelType}</div>}
                       </div>
                     )}
 
@@ -262,14 +318,16 @@ export default function UploadPage() {
                 </motion.div>
               )}
 
-              {(step === 4 || minted) && (
+              {(step === 4 || (minted && step !== 5)) && (
                 <motion.div key="step4" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
                   {minted ? (
                     <MintSuccess
                       txHash={txHash}
+                      tokenId={tokenId}
                       score={score}
-                      datasetName={listing.name || "Dataset"}
+                      datasetName={listingData.name || "Dataset"}
                       onReset={reset}
+                      onList={() => setStep(5)}
                     />
                   ) : (
                     <div className="glass rounded-2xl border border-white/10 p-8 text-center">
@@ -278,6 +336,74 @@ export default function UploadPage() {
                       <div className="text-[13px] text-text-secondary">Confirm the transaction in your wallet</div>
                     </div>
                   )}
+                </motion.div>
+              )}
+
+              {step === 5 && (
+                <motion.div key="step5" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+                  <div className="glass rounded-2xl border border-white/10 p-6">
+                    {listed ? (
+                      <div className="text-center py-6">
+                        <div className="text-4xl mb-4">🎉</div>
+                        <div className="text-[20px] font-bold text-text-primary mb-2">Listed on Marketplace!</div>
+                        <div className="text-[13px] text-text-secondary mb-6">
+                          DataSeal {tokenId ? `#${tokenId}` : ""} is now live for {listPrice} $0G
+                        </div>
+                        <div className="flex gap-3 justify-center">
+                          <a href="/marketplace"
+                            className="px-5 py-2.5 rounded-[10px] bg-purple-500 text-white text-[13px] font-semibold hover:bg-purple-400 hover:shadow-purple-glow transition-all">
+                            View in Marketplace →
+                          </a>
+                          <button onClick={reset}
+                            className="px-5 py-2.5 rounded-[10px] border border-white/10 text-[13px] text-text-secondary hover:border-white/18 transition-colors">
+                            Upload Another
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-[17px] font-semibold text-text-primary mb-1">List on Marketplace</div>
+                        <div className="text-[13px] text-text-secondary mb-5">
+                          Set a price in $0G. Two wallet confirmations: approve NFT transfer, then list.
+                        </div>
+
+                        {tokenId && (
+                          <div className="bg-bg-elevated rounded-xl px-4 py-3 mb-5 border border-white/8 flex items-center justify-between text-[13px]">
+                            <span className="text-text-muted">DataSeal</span>
+                            <span className="text-text-primary font-semibold font-mono">#{tokenId}</span>
+                          </div>
+                        )}
+
+                        <div className="mb-5">
+                          <label className="text-[12px] text-text-muted mb-2 block uppercase tracking-wider">Price ($0G)</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="1"
+                              step="1"
+                              value={listPrice}
+                              onChange={(e) => setListPrice(e.target.value)}
+                              className="flex-1 h-11 px-4 rounded-[10px] bg-bg-input border border-white/10 text-[15px] text-text-primary outline-none focus:border-purple-500/60 transition-colors"
+                              placeholder="e.g. 50"
+                            />
+                            <span className="text-[13px] text-purple-400 font-semibold">$0G</span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={listOnMarket}
+                          disabled={listing || isPending}
+                          className="w-full py-3 rounded-[10px] bg-purple-500 text-white text-[15px] font-semibold hover:bg-purple-400 hover:shadow-purple-glow disabled:opacity-60 transition-all duration-200"
+                        >
+                          {listing ? "Listing..." : "List on Marketplace →"}
+                        </button>
+                        <button onClick={() => setStep(4)}
+                          className="w-full mt-2 py-2.5 rounded-[10px] border border-white/10 text-[13px] text-text-secondary hover:border-white/18 transition-colors">
+                          Skip for now
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

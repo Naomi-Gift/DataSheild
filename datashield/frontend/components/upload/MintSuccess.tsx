@@ -11,9 +11,10 @@ type Props = {
   score: number;
   datasetName: string;
   onReset: () => void;
+  onList?: () => void;
 };
 
-export function MintSuccess({ tokenId, txHash, score, datasetName, onReset }: Props) {
+export function MintSuccess({ tokenId, txHash, score, datasetName, onReset, onList }: Props) {
   const confettiRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -77,12 +78,21 @@ export function MintSuccess({ tokenId, txHash, score, datasetName, onReset }: Pr
             View on Explorer ↗
           </a>
         )}
-        <Link
-          href="/marketplace"
-          className="px-5 py-2.5 rounded-[10px] bg-purple-500 text-white text-[13px] font-semibold hover:bg-purple-400 hover:shadow-purple-glow transition-all"
-        >
-          List on Marketplace →
-        </Link>
+        {onList ? (
+          <button
+            onClick={onList}
+            className="px-5 py-2.5 rounded-[10px] bg-purple-500 text-white text-[13px] font-semibold hover:bg-purple-400 hover:shadow-purple-glow transition-all"
+          >
+            List on Marketplace →
+          </button>
+        ) : (
+          <Link
+            href="/marketplace"
+            className="px-5 py-2.5 rounded-[10px] bg-purple-500 text-white text-[13px] font-semibold hover:bg-purple-400 hover:shadow-purple-glow transition-all"
+          >
+            View Marketplace →
+          </Link>
+        )}
         <button
           onClick={onReset}
           className="px-5 py-2.5 rounded-[10px] border border-white/10 text-[13px] text-text-secondary hover:border-white/18 transition-colors"

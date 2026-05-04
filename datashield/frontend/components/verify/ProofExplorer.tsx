@@ -170,6 +170,15 @@ export function ProofExplorer() {
         </div>
       )}
 
+      {/* Not found */}
+      {!loading && !t && input && !(hashToToken.isFetching || getSeal.isFetching) && (
+        <div className="mt-8 glass rounded-2xl border border-white/10 p-8 text-center">
+          <div className="text-3xl mb-3">🔍</div>
+          <div className="text-[16px] font-semibold text-text-primary mb-1">No certificate found</div>
+          <div className="text-[13px] text-text-secondary">Token ID {input} doesn&apos;t exist or hasn&apos;t been minted yet.</div>
+        </div>
+      )}
+
       {/* Results */}
       <AnimatePresence>
         {!loading && t && (
@@ -228,9 +237,9 @@ export function ProofExplorer() {
               </div>
 
               <div className="space-y-2 mb-6">
-                <CheckSection name="Label Consistency" passed={!t.slashed} detail="Checks label distribution for anomalies and inconsistencies across the dataset." />
-                <CheckSection name="Outlier Detection" passed={!t.slashed} detail="Scans for statistical outliers that could indicate data poisoning or injection attacks." />
-                <CheckSection name="Duplicate Injection" passed={!t.slashed} detail="Detects duplicate or near-duplicate samples that could bias model training." />
+                <CheckSection name="Label Consistency" passed={!t.slashed && t.score >= 70} detail="Checks label distribution for anomalies and inconsistencies across the dataset." />
+                <CheckSection name="Outlier Detection" passed={!t.slashed && t.score >= 70} detail="Scans for statistical outliers that could indicate data poisoning or injection attacks." />
+                <CheckSection name="Duplicate Injection" passed={!t.slashed && t.score >= 70} detail="Detects duplicate or near-duplicate samples that could bias model training." />
               </div>
 
               {/* DA Proof section */}

@@ -4,7 +4,6 @@ import { useDropzone } from "react-dropzone";
 import { useAccount } from "wagmi";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
 
 type Props = { onUpload: (jobId: string) => void };
 

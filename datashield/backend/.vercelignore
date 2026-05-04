@@ -1,0 +1,5 @@
+node_modules
+.env
+.DS_Store
+*.log
+src/scanner/__pycache__

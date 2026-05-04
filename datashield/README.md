@@ -3,9 +3,12 @@
 DataShield lets dataset uploaders certify training data via 0G Compute poison scans, mint an on-chain DataSeal quality certificate, and sell verified datasets to buyers using $0G.
 
 ##  Live Demo
-- **Frontend**: `TODO_DEPLOY_URL`
-- **Smart Contracts**: `TODO_AFTER_DEPLOY`
-- **Explorer**: `https://chainscan-galileo.0g.ai/address/<CONTRACT_ADDRESS>`
+- **Frontend**: Deploy to Vercel (see [DEPLOYMENT.md](./DEPLOYMENT.md))
+- **Backend**: Deploy to Vercel with Upstash Redis
+- **Smart Contracts**: 
+  - DataSealNFT: [`0xF34c654ebE27954E7b0917A267EA4c8B4d2AD619`](https://chainscan-galileo.0g.ai/address/0xF34c654ebE27954E7b0917A267EA4c8B4d2AD619)
+  - DataMarket: [`0xD1F1E3D8818959cC4bE1b109770d5B6875daF499`](https://chainscan-galileo.0g.ai/address/0xD1F1E3D8818959cC4bE1b109770d5B6875daF499)
+- **Explorer**: `https://chainscan-galileo.0g.ai`
 
 ## The Problem
 AI training datasets are increasingly targeted by **data poisoning**: malicious samples, label flips, duplicate/backdoor triggers, and distribution anomalies that silently degrade model performance or embed backdoors.
@@ -155,6 +158,30 @@ Marketplace for trading DataSeal NFTs with $0G token payments.
 - **Scanner**: Python 3, CSV analysis
 - **0G Compute Models**: `qwen-2.5-7b-instruct` (testnet)
 - **Detection**: Label consistency, duplicate injection, text outliers
+
+## 🚀 Deployment
+
+### Quick Deploy to Vercel
+
+**Frontend:**
+```bash
+cd datashield/frontend
+vercel
+```
+
+**Backend:**
+```bash
+cd datashield/backend
+vercel
+```
+
+For detailed deployment instructions including Redis setup, environment variables, and custom domains, see **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
+
+### Environment Variables
+
+Both frontend and backend require environment variables. See:
+- `frontend/.env.example` for frontend variables
+- `backend/.env.example` for backend variables
 
 ## Local Development
 

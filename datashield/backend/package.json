@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "node -r ts-node/register src/api.ts",
-    "start": "node -r ts-node/register src/api.ts"
+    "start": "node -r ts-node/register src/api.ts",
+    "build": "tsc",
+    "vercel-build": "echo 'Build complete'"
   },
   "dependencies": {
     "@0glabs/0g-ts-sdk": "latest",

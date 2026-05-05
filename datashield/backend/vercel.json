@@ -14,15 +14,5 @@
       "src": "/api/(.*)",
       "dest": "src/api.ts"
     }
-  ],
-  "env": {
-    "OG_INDEXER_RPC": "@og_indexer_rpc",
-    "OG_CHAIN_RPC": "@og_chain_rpc",
-    "ORACLE_PRIVATE_KEY": "@oracle_private_key",
-    "DATASEAL_NFT_ADDRESS": "@dataseal_nft_address",
-    "DATAMARKET_ADDRESS": "@datamarket_address",
-    "OG_TOKEN_ADDRESS": "@og_token_address",
-    "REDIS_URL": "@redis_url",
-    "PORT": "4000"
-  }
+  ]
 }

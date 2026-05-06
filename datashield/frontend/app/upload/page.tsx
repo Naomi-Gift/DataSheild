@@ -143,6 +143,14 @@ export default function UploadPage() {
       toast.error("Missing scan result fields for minting");
       return;
     }
+    if (result.oracleSig === "0x") {
+      toast.error("Oracle signature missing — check ORACLE_PRIVATE_KEY is set correctly in the backend environment variables");
+      return;
+    }
+    if (!DATASEAL_ADDRESS || DATASEAL_ADDRESS === "0x") {
+      toast.error("Contract address not configured — check NEXT_PUBLIC_DATASEAL_ADDRESS env var");
+      return;
+    }
     const listingData = result.listing || {};
     const datasetName = String(listingData.name || "Unnamed Dataset");
     const modelType   = String(listingData.modelType || "other");

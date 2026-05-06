@@ -64,8 +64,13 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
     const scanResultStr = JSON.stringify(scanOutput);
     const scanResultHash = "0x" + crypto.createHash("sha256").update(scanResultStr).digest("hex");
 
-    // Sign with oracle key
-    const oracleSig = await signScanResult(rootHash, scanResultHash, scanOutput.score);
+    // Sign with oracle key (non-fatal — scan result still returned if signing fails)
+    let oracleSig = "0x";
+    try {
+      oracleSig = await signScanResult(rootHash, scanResultHash, scanOutput.score);
+    } catch (sigErr: any) {
+      console.error("Oracle signing failed:", sigErr?.message);
+    }
 
     // Clean up temp file
     if (fs.existsSync(file.path)) fs.unlinkSync(file.path);

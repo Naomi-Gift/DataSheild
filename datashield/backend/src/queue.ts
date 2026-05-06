@@ -42,38 +42,18 @@ scanQueue.process(async (job) => {
   try {
     const signer = getSigner();
 
-    const { rootHash } = await uploadDataset(filePath, signer);
-
-    const scanOutput = await runPoisonScanner(filePath);
+    // Run storage upload and poison scan in parallel — independent of each other
+    const [{ rootHash }, scanOutput] = await Promise.all([
+      uploadDataset(filePath, signer),
+      runPoisonScanner(filePath),
+    ]);
 
     const scanResultStr = JSON.stringify(scanOutput);
     const scanResultHash = "0x" + crypto.createHash("sha256").update(scanResultStr).digest("hex");
 
     const oracleSig = await signScanResult(rootHash, scanResultHash, scanOutput.score);
 
-    let listing: any = null;
-    try {
-      const sample = fs.readFileSync(filePath, "utf8").slice(0, 3000);
-      listing = await generateDatasetListing(sample);
-    } catch (e) {
-      listing = {
-        name: "Unnamed Dataset",
-        description: "Dataset uploaded to DataShield.",
-        modelType: "other",
-        useCases: [],
-      };
-    }
-
-    let daProofRoot = "";
-    try {
-      const { daProofRoot: root } = await publishScanLog(jobId, { scanOutput, rootHash, walletAddress }, signer);
-      daProofRoot = root;
-    } catch {
-      daProofRoot = "";
-    }
-
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-
+    // Mark complete immediately with core results so frontend unblocks
     results.set(jobId, {
       status: "complete",
       rootHash,
@@ -81,10 +61,38 @@ scanQueue.process(async (job) => {
       sampleCount: scanOutput.sampleCount,
       scanResultHash,
       oracleSig,
-      daProofRoot,
+      daProofRoot: "",
       checks: scanOutput.checks,
-      listing,
+      listing: {
+        name: "Dataset",
+        description: "Dataset uploaded to DataShield.",
+        modelType: "other",
+        useCases: [],
+      },
     });
+
+    // Run listing generation and DA archival in background — don't block the user
+    const sample = fs.existsSync(filePath)
+      ? fs.readFileSync(filePath, "utf8").slice(0, 3000)
+      : "";
+
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+    // Fire and forget — update result when done
+    Promise.all([
+      generateDatasetListing(sample).catch(() => null),
+      publishScanLog(jobId, { scanOutput, rootHash, walletAddress }, signer).catch(() => null),
+    ]).then(([listing, daResult]) => {
+      const current = results.get(jobId);
+      if (current?.status === "complete") {
+        results.set(jobId, {
+          ...current,
+          listing: listing || current.listing,
+          daProofRoot: daResult?.daProofRoot || "",
+        });
+      }
+    });
+
   } catch (err: any) {
     results.set(jobId, { status: "failed", error: err?.message || "Unknown error" });
     if (fs.existsSync(job.data.filePath)) fs.unlinkSync(job.data.filePath);

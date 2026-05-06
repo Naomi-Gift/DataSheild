@@ -124,7 +124,16 @@ export default function UploadPage() {
   const { writeContractAsync, isPending } = useWriteContract();
   const publicClient = usePublicClient();
 
-  function onUpload(id: string) { setJobId(id); setStep(2); }
+  function onUpload(id: string, immediateResult?: ScanResult) {
+    setJobId(id);
+    if (immediateResult?.status === "complete") {
+      // Backend returned full result inline — skip polling step
+      setResult(immediateResult);
+      setStep(3);
+    } else {
+      setStep(2);
+    }
+  }
 
   function onScanComplete(r: ScanResult) { setResult(r); setStep(3); }
 
@@ -242,7 +251,7 @@ export default function UploadPage() {
             <AnimatePresence mode="wait">
               {step === 1 && (
                 <motion.div key="step1" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
-                  <UploadZone onUpload={(id) => { onUpload(id); }} />
+                  <UploadZone onUpload={(id, result) => { onUpload(id, result); }} />
                 </motion.div>
               )}
 

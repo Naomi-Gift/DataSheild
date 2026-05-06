@@ -5,7 +5,9 @@ import { useAccount } from "wagmi";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
-type Props = { onUpload: (jobId: string) => void };
+import type { ScanResult } from "@/lib/api";
+
+type Props = { onUpload: (jobId: string, result?: ScanResult) => void };
 
 function formatBytes(bytes: number) {
   const units = ["B", "KB", "MB", "GB"];
@@ -40,7 +42,7 @@ export function UploadZone({ onUpload }: Props) {
     fd.append("walletAddress", address);
     setUploading(true);
     try {
-      const result: { jobId: string } = await new Promise((resolve, reject) => {
+      const result: any = await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("POST", `${apiUrl.replace(/\/$/, "")}/api/upload`);
         xhr.upload.onprogress = (e) => { if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100)); };
@@ -55,8 +57,14 @@ export function UploadZone({ onUpload }: Props) {
         xhr.send(fd);
       });
       setDone(true);
-      toast.success("Upload received. Scan started.");
-      onUpload(result.jobId);
+      // If the response already contains scan results, pass them directly
+      if (result.status === "complete") {
+        toast.success("Scan complete.");
+        onUpload(result.jobId, result as ScanResult);
+      } else {
+        toast.success("Upload received. Scan started.");
+        onUpload(result.jobId);
+      }
     } catch (e: any) {
       const msg = e?.message || "Upload failed";
       setError(msg); toast.error(msg);

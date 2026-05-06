@@ -21,7 +21,14 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "2mb" }));
 
-const upload = multer({ dest: "/tmp" });
+const upload = multer({
+  dest: "/tmp",
+  fileFilter: (_req, file, cb) => {
+    const allowed = [".csv", ".json", ".jsonl", ".ndjson", ".txt", ".docx", ".parquet"];
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    cb(null, allowed.includes(ext));
+  },
+});
 
 app.post("/api/upload", upload.single("file"), async (req, res) => {
   try {

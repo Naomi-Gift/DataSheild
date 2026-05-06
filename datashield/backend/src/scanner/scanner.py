@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 DataShield Poison Detection Scanner
-Runs 3 checks on a training dataset CSV and returns a score 0-100
+Supports CSV, JSON, JSONL, TXT, and DOCX datasets
 Usage: python scanner.py <dataset_path>
 """
 
@@ -10,15 +10,95 @@ import json
 import hashlib
 import csv
 import math
+import os
 from collections import Counter
 
 
 def load_dataset(path: str):
+    ext = os.path.splitext(path)[1].lower()
+
+    if ext == ".csv":
+        return load_csv(path)
+    elif ext == ".json":
+        return load_json(path)
+    elif ext in (".jsonl", ".ndjson"):
+        return load_jsonl(path)
+    elif ext == ".txt":
+        return load_txt(path)
+    elif ext in (".docx", ".doc"):
+        return load_docx(path)
+    else:
+        # Try CSV as fallback
+        return load_csv(path)
+
+
+def load_csv(path: str):
     rows = []
     with open(path, "r", encoding="utf-8", errors="ignore") as f:
         reader = csv.DictReader(f)
         for row in reader:
             rows.append(row)
+    return rows
+
+
+def load_json(path: str):
+    with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        data = json.load(f)
+    if isinstance(data, list):
+        return [r if isinstance(r, dict) else {"text": str(r)} for r in data]
+    elif isinstance(data, dict):
+        # Try common keys: data, rows, samples, items, records
+        for key in ("data", "rows", "samples", "items", "records", "examples"):
+            if key in data and isinstance(data[key], list):
+                return [r if isinstance(r, dict) else {"text": str(r)} for r in data[key]]
+        return [data]
+    return [{"text": str(data)}]
+
+
+def load_jsonl(path: str):
+    rows = []
+    with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+                rows.append(obj if isinstance(obj, dict) else {"text": str(obj)})
+            except json.JSONDecodeError:
+                rows.append({"text": line})
+    return rows
+
+
+def load_txt(path: str):
+    rows = []
+    with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                rows.append({"text": line})
+    return rows
+
+
+def load_docx(path: str):
+    """Extract paragraphs from a .docx file using stdlib zipfile + XML parsing."""
+    import zipfile
+    import xml.etree.ElementTree as ET
+
+    rows = []
+    try:
+        with zipfile.ZipFile(path, "r") as z:
+            with z.open("word/document.xml") as doc_xml:
+                tree = ET.parse(doc_xml)
+                root = tree.getroot()
+                ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+                for para in root.iter("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p"):
+                    texts = [t.text or "" for t in para.iter("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t")]
+                    line = "".join(texts).strip()
+                    if line:
+                        rows.append({"text": line})
+    except Exception as e:
+        raise ValueError(f"Failed to parse DOCX: {e}")
     return rows
 
 

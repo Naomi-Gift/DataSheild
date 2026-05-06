@@ -65,7 +65,14 @@ export function UploadZone({ onUpload }: Props) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop, multiple: false, maxSize: 500 * 1024 * 1024,
-    accept: { "text/csv": [".csv"], "application/octet-stream": [".parquet"] },
+    accept: {
+      "text/csv": [".csv"],
+      "application/octet-stream": [".parquet"],
+      "application/json": [".json"],
+      "application/x-ndjson": [".jsonl", ".ndjson"],
+      "text/plain": [".txt"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+    },
   });
 
   const borderColor = error ? "rgba(245,97,74,0.5)" : isDragActive ? "rgba(123,110,246,0.8)" : done ? "rgba(29,217,160,0.5)" : "rgba(255,255,255,0.08)";
@@ -136,7 +143,7 @@ export function UploadZone({ onUpload }: Props) {
             <div className="font-mono text-[14px] font-semibold text-text-secondary">
               {isDragActive ? "DROP IT 🔥" : "DROP_DATASET_HERE"}
             </div>
-            <div className="font-mono text-[11px] text-text-muted">.csv · .parquet · max 500MB</div>
+            <div className="font-mono text-[11px] text-text-muted">.csv · .json · .jsonl · .txt · .docx · max 500MB</div>
             {error && (
               <div className="mt-2 font-mono text-[11px] text-coral-400 px-4 py-2 rounded-xl"
                 style={{ background: "rgba(245,97,74,0.08)", border: "1px solid rgba(245,97,74,0.2)" }}>

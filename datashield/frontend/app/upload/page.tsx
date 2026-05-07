@@ -3,6 +3,8 @@ import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWriteContract } from "wagmi";
 import { toast } from "sonner";
+
+declare global { interface Window { ethereum?: any; } }
 import { UploadZone } from "@/components/upload/UploadZone";
 import { ScanProgress } from "@/components/upload/ScanProgress";
 import { MintSuccess } from "@/components/upload/MintSuccess";
@@ -151,6 +153,33 @@ export default function UploadPage() {
       toast.error("Contract address not configured — check NEXT_PUBLIC_DATASEAL_ADDRESS env var");
       return;
     }
+
+    // Switch to 0G network if needed
+    try {
+      await window.ethereum?.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0x40DA" }], // 16602 in hex
+      });
+    } catch (switchErr: any) {
+      // Chain not added yet — add it
+      if (switchErr?.code === 4902) {
+        try {
+          await window.ethereum?.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: "0x40DA",
+              chainName: "0G Aristotle Testnet",
+              nativeCurrency: { name: "0G", symbol: "0G", decimals: 18 },
+              rpcUrls: ["https://evmrpc-testnet.0g.ai"],
+              blockExplorerUrls: ["https://chainscan-galileo.0g.ai"],
+            }],
+          });
+        } catch (addErr: any) {
+          toast.error("Please add the 0G testnet to MetaMask manually");
+          return;
+        }
+      }
+    }
     const listingData = result.listing || {};
     const datasetName = String(listingData.name || "Unnamed Dataset");
     const modelType   = String(listingData.modelType || "other");
@@ -206,6 +235,17 @@ export default function UploadPage() {
     if (priceWei <= 0n) { toast.error("Enter a valid price"); return; }
     try {
       setListing(true);
+      // Switch to 0G network if needed
+      try {
+        await window.ethereum?.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x40DA" }] });
+      } catch (switchErr: any) {
+        if (switchErr?.code === 4902) {
+          await window.ethereum?.request({
+            method: "wallet_addEthereumChain",
+            params: [{ chainId: "0x40DA", chainName: "0G Aristotle Testnet", nativeCurrency: { name: "0G", symbol: "0G", decimals: 18 }, rpcUrls: ["https://evmrpc-testnet.0g.ai"], blockExplorerUrls: ["https://chainscan-galileo.0g.ai"] }],
+          });
+        }
+      }
       // Approve NFT transfer to DataMarket
       await writeContractAsync({
         address: DATASEAL_ADDRESS,

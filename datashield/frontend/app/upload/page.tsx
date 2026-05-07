@@ -98,7 +98,7 @@ function PreviewCard({ step, result, fileName }: { step: Step; result: ScanResul
         </div>
         <div className="flex justify-between">
           <span className="text-text-muted">Stake required</span>
-          <span className="text-text-secondary">100 $0G</span>
+          <span className="text-text-secondary">0.01 $0G</span>
         </div>
         <div className="flex justify-between">
           <span className="text-text-muted">Status</span>
@@ -172,7 +172,7 @@ export default function UploadPage() {
           sampleCount,
           result.oracleSig as `0x${string}`,
         ],
-        value: 100n * 10n ** 18n,
+        value: 1n * 10n ** 16n, // 0.01 $0G stake for demo
       });
       setTxHash(hash);
 
@@ -310,7 +310,7 @@ export default function UploadPage() {
                         </div>
                         <div className="flex items-center justify-between text-[13px] text-text-muted bg-bg-elevated rounded-xl px-4 py-3">
                           <span>Stake required</span>
-                          <span className="text-text-primary font-semibold">100 $0G</span>
+                          <span className="text-text-primary font-semibold">0.01 $0G</span>
                         </div>
                         <button
                           onClick={mint}

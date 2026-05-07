@@ -206,23 +206,29 @@ export default function UploadPage() {
       setTxHash(hash);
 
       // Extract tokenId from receipt logs
+      let extractedTokenId: number | undefined;
       if (publicClient && hash) {
         try {
           const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
-          // The Sealed event: Sealed(uint256 indexed tokenId, ...)
-          // topic[1] is the tokenId
+          // Sealed(uint256 indexed tokenId, bytes32 indexed datasetHash, address uploader, uint8 score, uint256 stake)
+          // topic[0] = event sig, topic[1] = tokenId (indexed)
           const sealedLog = receipt.logs.find(
             (l) => l.address.toLowerCase() === DATASEAL_ADDRESS.toLowerCase() && l.topics.length >= 2
           );
           if (sealedLog?.topics[1]) {
-            setTokenId(Number(BigInt(sealedLog.topics[1])));
+            extractedTokenId = Number(BigInt(sealedLog.topics[1]));
+            setTokenId(extractedTokenId);
           }
         } catch {
-          // tokenId extraction failed, continue without it
+          // receipt wait failed — tokenId unknown
         }
       }
 
       setMinted(true);
+      // If we couldn't extract tokenId, advance to step 5 anyway — user can enter it manually
+      if (!extractedTokenId) {
+        toast("Minted! Enter your token ID to list on marketplace.");
+      }
     } catch (e: any) {
       toast.error(e?.shortMessage || e?.message || "Mint failed");
       setStep(3);
@@ -424,10 +430,22 @@ export default function UploadPage() {
                           Set a price in $0G. Two wallet confirmations: approve NFT transfer, then list.
                         </div>
 
-                        {tokenId && (
+                        {tokenId ? (
                           <div className="bg-bg-elevated rounded-xl px-4 py-3 mb-5 border border-white/8 flex items-center justify-between text-[13px]">
                             <span className="text-text-muted">DataSeal</span>
                             <span className="text-text-primary font-semibold font-mono">#{tokenId}</span>
+                          </div>
+                        ) : (
+                          <div className="mb-5">
+                            <label className="text-[12px] text-text-muted mb-2 block uppercase tracking-wider">Token ID</label>
+                            <input
+                              type="number"
+                              min="1"
+                              placeholder="Enter your minted token ID"
+                              onChange={(e) => setTokenId(Number(e.target.value) || undefined)}
+                              className="w-full h-11 px-4 rounded-[10px] bg-bg-input border border-white/10 text-[15px] text-text-primary outline-none focus:border-purple-500/60 transition-colors"
+                            />
+                            <div className="text-[11px] text-text-muted mt-1">Check your wallet or the explorer for the token ID</div>
                           </div>
                         )}
 
